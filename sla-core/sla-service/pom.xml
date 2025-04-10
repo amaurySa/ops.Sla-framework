@@ -276,46 +276,46 @@
 		</dependency>
 		
 		<dependency>
-			<groupId>eu.atos.sla</groupId>
+			<groupId>eu.seaclouds-project</groupId>
 			<artifactId>sla-enforcement</artifactId>
-			<version>0.1.1-SNAPSHOT</version>
+			<version>1.0.0</version>
 		</dependency>
 		<dependency>
-			<groupId>eu.atos.sla</groupId>
+			<groupId>eu.seaclouds-project</groupId>
 			<artifactId>sla-enforcement</artifactId>
-			<version>0.1.1-SNAPSHOT</version>
+			<version>1.0.0</version>
 			<type>test-jar</type>
 			<scope>test</scope>
 		</dependency>
 		
 		<dependency>
-			<groupId>eu.atos.sla</groupId>
+			<groupId>eu.seaclouds-project</groupId>
 			<artifactId>sla-repository</artifactId>
-			<version>0.1.1-SNAPSHOT</version>
+			<version>1.0.0</version>
 		</dependency>
 		<dependency>
-			<groupId>eu.atos.sla</groupId>
+			<groupId>eu.seaclouds-project</groupId>
 			<artifactId>sla-repository</artifactId>
-			<version>0.1.1-SNAPSHOT</version>
+			<version>1.0.0</version>
 			<type>test-jar</type>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>eu.atos.sla</groupId>
+			<groupId>eu.seaclouds-project</groupId>
 			<artifactId>sla-tools</artifactId>
-			<version>0.1.1-SNAPSHOT</version>
+			<version>1.0.0</version>
 		</dependency>
 		<dependency>
-			<groupId>eu.atos.sla</groupId>
+			<groupId>eu.seaclouds-project</groupId>
 			<artifactId>sla-tools</artifactId>
-			<version>0.1.1-SNAPSHOT</version>
+			<version>1.0.0</version>
 			<type>test-jar</type>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>eu.atos.sla</groupId>
+			<groupId>eu.seaclouds-project</groupId>
 			<artifactId>sla-personalization</artifactId>
-			<version>0.1.1-SNAPSHOT</version>
+			<version>1.0.0</version>
 		</dependency>
 
 		<!--
