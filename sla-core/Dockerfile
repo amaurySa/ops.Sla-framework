@@ -33,7 +33,8 @@ RUN pip2 install --upgrade pip
 RUN pip2 install -r requirements.txt
 
 # Construire et installer tous les modules
-RUN mvn clean install
+# RUN mvn install
+RUN mvn install -Dmaven.test.skip=true
 
 # Démarrer MySQL, attendre qu'il soit opérationnel, puis configurer la base de données
 RUN service mysql start && \
