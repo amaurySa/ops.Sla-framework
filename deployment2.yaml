@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sla-project-machine-2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sla-project-2
+  template:
+    metadata:
+      labels:
+        app: sla-project-2
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: minikube-m02    # Remplacez <node-name-machine-1> par le nom de votre nœud de travail
+      containers:
+      - name: sla-project-2
+        image: mon-projet:v1    # Remplacez par votre image Docker
+        ports:
+        - containerPort: 8080

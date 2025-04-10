@@ -1,0 +1,81 @@
+### Prévoir une machine virtuelle avec plus de 50 GBs de mémoire. 
+### VM utilisée : Ubuntu 16.04.7 64-bit 
+
+
+## Création du projet (si besoin de le modifier, sinon, passer au déploiement via Minikube)
+## Toutes les fonctions suivantes sont à réaliser dans le dossier sla-core, préférablement dans une VM
+cd /Kubernetes-Fiware/sla-core
+
+# Installation des dépendances
+sudo apt -y install openjdk-8-jdk && sudo apt -y install maven && sudo apt -y install docker.io && sudo apt -y install mysql-server && sudo apt -y install git
+
+# Configuration du MySQL server
+sudo systemctl start mysql && sudo systemctl enable mysql
+sudo mysql -p -u root
+CREATE DATABASE atossla; CREATE USER atossla@localhost IDENTIFIED BY '_atossla_'; GRANT ALL PRIVILEGES ON atossla.* TO atossla@localhost; 
+exit
+
+# Configuration du serveur tomcat
+sudo mkdir -p /opt/tomcat/webapps/ && sudo chown -R $USER:$USER /opt/tomcat/webapps/
+
+
+# Tests d'installation
+# Installation maven sans les tests
+mvn install -Dmaven.test.skip=true
+# Si bug ici, modifier sla-service/pom.xml pour que les dépendances 'test-jar' prennent le groupId "eu.seaclouds-project" et la version "1.0.0" (enlever aussi le '-SNAPSHOT')
+
+#Installation maven avec les tests (bogué pour l'instant)
+mvn install 
+# Bug pour les tests de sla-enforcement, Problème de contexte java :
+> " Could not resolve placeholder 'eu.atos.sla.enforcement.poll.interval.mseconds' " (variable utilisée dans le dossier sla-enforcement/src/main/java/eu/atos/sla/enforcement/ par AgreementEnforcement.java et Schedule/ScheduledEnforcementWorker.java)
+> " Failed to load ApplicationContext "
+
+
+# Créer le projet Docker
+sudo docker build -t mon-projet:v1 .
+sudo docker save -o ../slaf.tar mon-projet:v1
+
+# Débloquer le projet
+sudo chmod 644 ../slaf.tar
+
+
+/////////////////////////////////////////////
+
+## Déploiement via Minikube
+## Toutes les fonctions suivantes sont à réaliser dans le dossier parent de sla-core, préférablement dans une VM
+cd /Kubernetes-Fiware
+
+# installation minikube et docker
+sudo apt -y install curl && curl -LO https://github.com/kubernetes/minikube/releases/latest/download/minikube-linux-amd64 && sudo install minikube-linux-amd64 /usr/local/bin/minikube && rm minikube-linux-amd64 && sudo apt -y install docker.io && sudo usermod -aG docker $USER && newgrp docker
+
+# Création du réseau minikube, soit à partir de machines virtuelles, soit de containers Docker (utiliser préférablement Docker)
+minikube start --nodes 3 --driver=virtualbox  --no-vtx-check
+minikube start --nodes 3 --driver=docker  --no-vtx-check
+minikube kubectl -- get pods -A
+
+# installer le projet (slaf.tar)
+minikube image load slaf.tar
+# Cette installation est longue (~20 minutes), prend ~20 GBs de mémoire, la fonction kubernetes ne montre pas l'avancement (s'il n'y a pas d'erreur, cela continue de tourner)
+
+# Configurer les nœuds
+# Si vous créez une nouvelle image Docker, modifier les fichiers de déploiement
+minikube kubectl -- apply -f deployment.yaml -f deployment1.yaml -f deployment2.yaml
+minikube kubectl -- expose deployment sla-project-control-plane --type=NodePort --port=8080
+minikube kubectl -- expose deployment sla-project-machine-1 --type=NodePort --port=8080
+minikube kubectl -- expose deployment sla-project-machine-2 --type=NodePort --port=8080
+Amaury > Je n'ai pas essayé de modifier les configurations ici, ni dans les fichiers de déploiement. Je vous laisse modifier comme vous le souhaitez.
+
+
+# Vérifier l'architecture Minikube
+minikube kubectl get pods
+minikube kubectl get services
+minikube ssh
+$ docker images
+$ exit 
+minikube status
+
+# Récupérer l'adresse du projet
+minikube service sla-project-control-plane
+# Cliquer ou entrer l'url indiquée par la commande précédente pour observer le service sur son port
+# Exemple: http://192.168.49.2:31645
+# Si la connexion n'est pas possible, vérifier que les pods sont READY

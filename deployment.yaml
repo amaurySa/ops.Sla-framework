@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sla-project-control-plane
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sla-project
+  template:
+    metadata:
+      labels:
+        app: sla-project
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: minikube  # Utilisez le nom exact de votre nœud de contrôle
+      containers:
+      - name: sla-project
+        image: mon-projet:v1    # Remplacez par votre image Docker  
+        ports:
+        - containerPort: 8080

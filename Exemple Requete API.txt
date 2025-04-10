@@ -1,0 +1,121 @@
+Amaury > Les étudiants m'ont envoyé ceci, je n'ai pas testé ces exemples
+
+Requete GET templates : 
+http://192.168.59.105:30748/sla-service/templates
+
+headers : 
+Accept             application/json 
+
+Autorisation : atossla     mp:_atossla_
+body raw : xml ou json 
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+requete post templates  :  http://192.168.59.105:30748/sla-service/templates
+
+body : 
+xml : 
+  <wsag:Template xmlns:wsag="http://www.ggf.org/namespaces/ws-agreement" xmlns:sla="http://sla.atos.eu">
+      <wsag:Name>Template1</wsag:Name>
+      <wsag:Context>
+          <wsag:AgreementInitiator>0df81e3d-1b7c-4dab-803b-6c45b1a61005</wsag:AgreementInitiator>
+          <wsag:ServiceProvider>AgreementInitiator</wsag:ServiceProvider>
+          <wsag:ExpirationTime>0037-01-04T15:08:15CET</wsag:ExpirationTime>
+          <sla:Service>Service1</sla:Service>
+      </wsag:Context>
+      <wsag:Terms>
+          <wsag:All>
+              <wsag:ServiceDescriptionTerm />
+              <wsag:ServiceProperties wsag:ServiceName="Service1">
+                  <wsag:VariableSet>
+                      <wsag:Variable wsag:Name="percDiskUsed" />
+                  </wsag:VariableSet>
+              </wsag:ServiceProperties>
+              <wsag:GuaranteeTerm wsag:Name="percDiskUsed">
+                  <wsag:ServiceScope wsag:ServiceName="Service1" />
+                  <wsag:ServiceLevelObjective>
+                      <wsag:KPITarget>
+                          <wsag:KPIName>percDiskUsed</wsag:KPIName>
+                          <wsag:CustomServiceLevel>{"constraint": "percDiskUsed GT 50"}</wsag:CustomServiceLevel>
+                      </wsag:KPITarget>
+                  </wsag:ServiceLevelObjective>
+              </wsag:GuaranteeTerm>
+          </wsag:All>
+      </wsag:Terms>
+  </wsag:Template>
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+requetes post providers: http://192.168.59.105:30748/sla-service/providers
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<provider>
+    <name>Provider 2</name>
+</provider>
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+get providers : http://192.168.59.105:30748/sla-service/providers
+
+
+//Agreements : 
+
+post:  http://192.168.59.105:30748/sla-service/agreements
+
+<wsag:Agreement xmlns:wsag="http://www.ggf.org/namespaces/ws-agreement" xmlns:sla="http://sla.atos.eu">
+    <wsag:Name>Agreement1</wsag:Name>
+    <wsag:Context>
+        <wsag:AgreementInitiator>user3@serviceuser.com</wsag:AgreementInitiator>
+        <wsag:AgreementResponder>e229ccef-4365-48b3-9c4e-ba8aeb9d7e67</wsag:AgreementResponder>
+        <wsag:ServiceProvider>AgreementResponder</wsag:ServiceProvider>
+        <wsag:ExpirationTime>2025-12-31T23:59:59CET</wsag:ExpirationTime>
+        <wsag:TemplateId>1e844e2d-9aa8-4f6f-a548-ffaf4dfd840c</wsag:TemplateId>
+        <sla:Service>Service1</sla:Service>
+    </wsag:Context>
+    <wsag:Terms>
+        <wsag:All>
+            <wsag:ServiceDescriptionTerm />
+            <wsag:ServiceProperties wsag:Name="ServiceProperties" wsag:ServiceName="Service1">
+                <wsag:VariableSet>
+                    <wsag:Variable wsag:Name="percCPULoad" />
+                    <wsag:Variable wsag:Name="percDiskUsed" />
+                    <wsag:Variable wsag:Name="percRAMUsed" />
+                </wsag:VariableSet>
+            </wsag:ServiceProperties>
+            <wsag:GuaranteeTerm wsag:Name="percCPULoad">
+                <wsag:ServiceScope wsag:ServiceName="Service1">Service1</wsag:ServiceScope>
+                <wsag:ServiceLevelObjective>
+                    <wsag:KPITarget>
+                        <wsag:KPIName>percCPULoad</wsag:KPIName>
+                        <wsag:CustomServiceLevel>{"constraint": "percCPULoad LT 90"}</wsag:CustomServiceLevel>
+                    </wsag:KPITarget>
+                </wsag:ServiceLevelObjective>
+            </wsag:GuaranteeTerm>
+            <wsag:GuaranteeTerm wsag:Name="percDiskUsed">
+                <wsag:ServiceScope wsag:ServiceName="Service1">Service1</wsag:ServiceScope>
+                <wsag:ServiceLevelObjective>
+                    <wsag:KPITarget>
+                        <wsag:KPIName>percDiskUsed</wsag:KPIName>
+                        <wsag:CustomServiceLevel>{"constraint": "percDiskUsed LT 80"}</wsag:CustomServiceLevel>
+                    </wsag:KPITarget>
+                </wsag:ServiceLevelObjective>
+            </wsag:GuaranteeTerm>
+            <wsag:GuaranteeTerm wsag:Name="percRAMUsed">
+                <wsag:ServiceScope wsag:ServiceName="Service1">Service1</wsag:ServiceScope>
+                <wsag:ServiceLevelObjective>
+                    <wsag:KPITarget>
+                        <wsag:KPIName>percRAMUsed</wsag:KPIName>
+                        <wsag:CustomServiceLevel>{"constraint": "percRAMUsed LT 80"}</wsag:CustomServiceLevel>
+                    </wsag:KPITarget>
+                </wsag:ServiceLevelObjective>
+            </wsag:GuaranteeTerm>
+        </wsag:All>
+    </wsag:Terms>
+</wsag:Agreement>
+
+
+
+enforcement: 
+put : http://192.168.59.105:30748/sla-service/enforcements
+
+
+
