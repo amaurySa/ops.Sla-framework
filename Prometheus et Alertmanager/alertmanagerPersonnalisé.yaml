@@ -1,4 +1,11 @@
 #ce fichier de configuration de prometheus, configure les pod rules, il est à appliquer avec la commande kubectl apply -f pod-cpu-usage-levels.yaml (et non pas avec helm upgrade)
+# J’ai renommé ce fichier en "Personnalisé" pour éviter d’écraser la config d’origine extraite après le déploiement d’Alertmanager (qui s’appelle aussi alertmanager.yaml par défaut).
+# Pour rappel, on extrait la config actuelle avec :
+# minikube kubectl -- get secret alertmanager-prometheus-kube-prometheus-alertmanager -n monitoring -o jsonpath="{.data.alertmanager\.yaml}" | base64 -d > alertmanager.yaml
+# Ensuite, il suffit de copier le contenu dans le vrai alertmanager.yaml, puis de réencoder avec :
+# base64 -w0 alertmanager.yaml > alertmanager.yaml.b64
+# (Toutes les commandes détaillées sont dans le fichier joint au projet)
+
 global:
   resolve_timeout: 5m
   smtp_smarthost: 'smtp.gmail.com:587'
