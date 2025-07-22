@@ -1,0 +1,106 @@
+global:
+  resolve_timeout: 5m
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'monitoringk8s@gmail.com'
+  smtp_auth_username: 'monitoringk8s@gmail.com'
+  smtp_auth_password: 'batk bazm nfmg lutk'
+  smtp_require_tls: true
+
+route:
+  group_by: ['alertname']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 1h
+  receiver: 'null'  # Par défaut, rien n'est envoyé
+
+  routes:
+    # Ignorer les alertes Watchdog
+    - matchers:
+        - alertname="Watchdog"
+      receiver: "null"
+
+    # Alertes CPU normales
+    - matchers:
+        - alertname="PodCpuNormal"
+      receiver: "mail-and-slo-tracker"
+      repeat_interval: 2h
+      group_interval: 10m
+      continue: true
+
+    # Alertes CPU élevées
+    - matchers:
+        - alertname=~"PodHighCpuUsage|PodCpuFailure"
+      receiver: "mail-and-slo-tracker"
+      repeat_interval: 30m
+      continue: true
+
+    # Alertes mémoire
+    - matchers:
+        - alertname="PodHighMemoryUsage"
+      receiver: "mail-and-slo-tracker"
+      repeat_interval: 1h
+      continue: true
+
+    # Webhooks pour toutes les alertes CPU
+    - matchers:
+        - alertname=~"PodCpuNormal|PodHighCpuUsage|PodCpuFailure"
+      receiver: "flask-webhook"
+      continue: true
+
+    # SLO Tracker pour alertes critiques uniquement
+    - matchers:
+        - alertname=~"PodHighCpuUsage|PodHighMemoryUsage|PodCpuFailure"
+      receiver: "slo-tracker-webhook"
+
+receivers:
+  - name: "null"
+
+  - name: "mail-and-slo-tracker"
+    email_configs:
+      - to: 'monitoringk8s@gmail.com'
+        send_resolved: false
+        html: |
+          <h3>🚨 Alerte Kubernetes - {{ .CommonLabels.alertname }}</h3>
+          <p><b>Résumé:</b> {{ .CommonAnnotations.summary }}</p>
+          <p><b>Description:</b> {{ .CommonAnnotations.description }}</p>
+          <p><b>Pods concernés :</b></p>
+          <ul>
+            {{ range .Alerts }}
+              <li><b>{{ .Labels.pod }}</b> (namespace: {{ .Labels.namespace }})</li>
+            {{ end }}
+          </ul>
+          <p><i>Notification limitée selon la criticité de l'alerte.</i></p>
+    webhook_configs:
+      - url: 'http://192.168.46.133:8080/api/v1/incident/1/webhook/prometheus'
+        send_resolved: true
+
+  - name: 'flask-webhook'
+    webhook_configs:
+      - url: 'http://192.168.46.249:5000/alert'
+        send_resolved: true
+
+  - name: 'slo-tracker-webhook'
+    webhook_configs:
+      - url: 'http://192.168.46.133:8080/api/v1/incident/1/webhook/prometheus'
+        send_resolved: true
+
+inhibit_rules:
+  - source_matchers:
+      - severity="critical"
+    target_matchers:
+      - severity="warning"
+    equal:
+      - alertname
+      - pod
+      - namespace
+
+  - source_matchers:
+      - alertname=~"PodHighCpuUsage|PodCpuFailure"
+    target_matchers:
+      - alertname="PodCpuNormal"
+    equal:
+      - pod
+      - namespace
+
+templates:
+  - /etc/alertmanager/config/*.tmpl

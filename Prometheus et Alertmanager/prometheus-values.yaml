@@ -1,0 +1,92 @@
+prometheus: #ce fichier est a appliquer avec helm upgrade et non avec kubectl apply, il configure les node rules et non pas les pod rules
+  prometheusSpec:
+    additionalScrapeConfigs:
+      - job_name: 'prometheus'
+        static_configs:
+          - targets: ['localhost:9090']
+        scrape_interval: 15s
+      - job_name: 'kubelet-cadvisor'
+        scheme: https
+        tls_config:
+          insecure_skip_verify: true
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        kubernetes_sd_configs:
+          - role: node
+        metrics_path: /metrics/cadvisor
+        scrape_interval: 15s
+        relabel_configs:
+          - source_labels: [__address__]
+            regex: '(.*):10250'
+            replacement: '${1}:10250'
+            target_label: __address__
+
+additionalPrometheusRules:
+  - name: pod-cpu-usage-levels
+    groups:
+      - name: pod-cpu.rules
+        rules:
+          - alert: CpuNormal
+            expr: |
+              sum by(pod, namespace) (
+                rate(container_cpu_usage_seconds_total[5m])
+              ) < 0.8
+            for: 5m
+            labels:
+              severity: info
+            annotations:
+              summary: "CPU usage is normal on pod {{ $labels.pod }} (namespace {{ $labels.namespace }})"
+              description: "CPU usage is below 80% for more than 5 minutes on pod {{ $labels.pod }}."
+              pod: "{{ $labels.pod }}"
+              namespace: "{{ $labels.namespace }}"
+              cpu: "{{ printf \"%.2f\" $value }}"
+
+          - alert: HighCpuUsage
+            expr: |
+              sum by(pod, namespace) (
+                rate(container_cpu_usage_seconds_total[5m])
+              ) >= 0.8 and
+              sum by(pod, namespace) (
+                rate(container_cpu_usage_seconds_total[5m])
+              ) < 1.0
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High CPU usage on pod {{ $labels.pod }} (namespace {{ $labels.namespace }})"
+              description: "CPU usage is between 80% and 100% for more than 5 minutes."
+              pod: "{{ $labels.pod }}"
+              namespace: "{{ $labels.namespace }}"
+              cpu: "{{ printf \"%.2f\" $value }}"
+
+          - alert: CpuFailure
+            expr: |
+              sum by(pod, namespace) (
+                rate(container_cpu_usage_seconds_total[5m])
+              ) >= 1.0
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "CPU FAILURE on pod {{ $labels.pod }} (namespace {{ $labels.namespace }})"
+              description: "CPU usage exceeded 100% for more than 1 minute!"
+              pod: "{{ $labels.pod }}"
+              namespace: "{{ $labels.namespace }}"
+              cpu: "{{ printf \"%.2f\" $value }}"
+
+          - alert: HighDiskUsage
+            expr: 100 * (node_filesystem_size_bytes{fstype!~"tmpfs|overlay"} - node_filesystem_free_bytes{fstype!~"tmpfs|overlay"}) / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"} > 80
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Disk usage is high on instance {{ $labels.instance }} (mountpoint {{ $labels.mountpoint }})"
+              description: "Disk usage is above 80% for more than 5 minutes on {{ $labels.mountpoint }}."
+
+          - alert: HighMemoryUsage
+            expr: 100 * (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 80
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Memory usage is high on instance {{ $labels.instance }}"
+              description: "Memory usage is above 80% for more than 5 minutes."
