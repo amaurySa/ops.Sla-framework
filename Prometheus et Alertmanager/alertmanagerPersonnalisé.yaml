@@ -1,3 +1,4 @@
+#ce fichier de configuration de prometheus, configure les pod rules, il est à appliquer avec la commande kubectl apply -f pod-cpu-usage-levels.yaml (et non pas avec helm upgrade)
 global:
   resolve_timeout: 5m
   smtp_smarthost: 'smtp.gmail.com:587'
