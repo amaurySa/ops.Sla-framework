@@ -1,4 +1,4 @@
-1. Installation de Helm, Prometheus et Grafana
+# 1. Installation de Helm, Prometheus et Grafana
 
 # Installer Helm (si ce n’est pas déjà fait)
 curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
@@ -17,7 +17,7 @@ helm install prometheus prometheus-community/kube-prometheus-stack --namespace m
 minikube kubectl -- get pods -n monitoring
 
 
-2. Accès aux interfaces web (port-forward)
+# 2. Accès aux interfaces web (port-forward)
 # Prometheus
 minikube kubectl -- port-forward svc/prometheus-kube-prometheus-prometheus 9090:9090 -n monitoring
 
@@ -32,12 +32,12 @@ sudo lsof -i :3000
 sudo kill -9 361475
 
   
-3. Récupération du mot de passe admin Grafana
+# 3. Récupération du mot de passe admin Grafana
 user : admin 
 minikube kubectl -- get secret --namespace monitoring grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
 
 
-4. Déploiement et vérification de Node Exporter 
+# 4. Déploiement et vérification de Node Exporter 
 
 # Node Exporter est déployé automatiquement avec kube-prometheus-stack
 # Vérifier la présence des pods Node Exporter
@@ -47,11 +47,11 @@ minikube kubectl -- get pods -n monitoring
 minikube kubectl -- get services -n monitoring
 
 
-5. Mise à jour de la stack (si modification de la config) 
+# 5. Mise à jour de la stack (si modification de la config) 
 helm upgrade prometheus prometheus-community/kube-prometheus-stack -f prometheus-values.yaml -n monitoring
 
 
-6. Configuration d’Alertmanager pour l’envoi d’emails
+# 6. Configuration d’Alertmanager pour l’envoi d’emails
 
 # Exporter la configuration actuelle
 minikube kubectl -- get secret alertmanager-prometheus-kube-prometheus-alertmanager -n monitoring -o jsonpath="{.data.alertmanager\.yaml}" | base64 -d > alertmanager.yaml
@@ -69,7 +69,7 @@ minikube kubectl -- delete pod -n monitoring alertmanager-prometheus-kube-promet
 minikube kubectl -- port-forward -n monitoring alertmanager-prometheus-kube-prometheus-alertmanager-0 9093:9093
 
   
-7. Déploiement de SLO Tracker
+# 7. Déploiement de SLO Tracker
 # Installer docker-compose si besoin
 sudo apt-get update
 sudo apt-get install docker-compose
