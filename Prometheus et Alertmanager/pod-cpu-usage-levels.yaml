@@ -1,0 +1,68 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: pod-cpu-usage-levels
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  groups:
+  - name: pod.rules
+    rules:
+    # Alerte d'information : CPU normal (limitée à 1 notification/heure)
+    - alert: PodCpuNormal
+      expr: |
+        sum by(pod, namespace) (
+          rate(container_cpu_usage_seconds_total{cpu="total"}[5m])
+        ) < 0.5
+      for: 5m
+      labels:
+        severity: info
+      annotations:
+        summary: "CPU usage is normal on pod {{ $labels.pod }} (namespace {{ $labels.namespace }})"
+        description: "CPU usage is below 50% for more than 5 minutes on pod {{ $labels.pod }}."
+
+    # Alerte d'avertissement : CPU élevé (entre 80% et 99%)
+    - alert: PodHighCpuUsage
+      expr: |
+        sum by(pod, namespace) (
+          rate(container_cpu_usage_seconds_total{cpu="total"}[5m])
+        ) > 0.8
+        and
+        sum by(pod, namespace) (
+          rate(container_cpu_usage_seconds_total{cpu="total"}[5m])
+        ) < 0.99
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High CPU usage on pod {{ $labels.pod }} (namespace {{ $labels.namespace }})"
+        description: "CPU usage is between 80% and 99% for more than 5 minutes on pod {{ $labels.pod }}."
+
+    # Alerte critique : CPU très élevé (≥ 99%)
+    - alert: PodCpuFailure
+      expr: |
+        sum by(pod, namespace) (
+          rate(container_cpu_usage_seconds_total{cpu="total"}[5m])
+        ) >= 0.99
+      for: 2m
+      labels:
+        severity: critical
+      annotations:
+        summary: "CRITICAL CPU usage on pod {{ $labels.pod }} (namespace {{ $labels.namespace }})"
+        description: "CPU usage is at or above 99% for more than 2 minutes on pod {{ $labels.pod }}! Immediate action required."
+
+    # Alerte mémoire élevée
+    - alert: PodHighMemoryUsage
+      expr: |
+        sum by(pod, namespace) (
+          container_memory_usage_bytes
+        ) / sum by(pod, namespace) (
+          container_spec_memory_limit_bytes > 0
+        ) > 0.8
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High memory usage on pod {{ $labels.pod }} (namespace {{ $labels.namespace }})"
+        description: "Memory usage is above 80% of limit for more than 5 minutes on pod {{ $labels.pod }}."

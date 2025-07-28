@@ -1,0 +1,87 @@
+# 1. Installation de Helm, Prometheus et Grafana
+
+# Installer Helm (si ce n’est pas déjà fait)
+curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+chmod 700 get_helm.sh
+./get_helm.sh
+
+# Ajouter les dépôts Helm nécessaires
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo add grafana https://grafana.github.io/helm-charts
+helm repo update
+
+# Installer Prometheus et Grafana avec le chart kube-prometheus-stack
+helm install prometheus prometheus-community/kube-prometheus-stack --namespace monitoring --create-namespace
+
+# Vérifier que les pods sont bien déployés
+minikube kubectl -- get pods -n monitoring
+
+
+# 2. Accès aux interfaces web (port-forward)
+# Prometheus
+minikube kubectl -- port-forward svc/prometheus-kube-prometheus-prometheus 9090:9090 -n monitoring
+
+# Grafana (port 3000 ou autre si déjà utilisé)
+minikube kubectl -- port-forward svc/grafana 3000:80 -n monitoring
+# Si le port 3000 est occupé, choisir un autre port, ex :
+minikube kubectl -- port-forward svc/grafana 3001:80 -n monitoring
+
+# Vérifier quel processus utilise un port (ex : 3000)
+sudo lsof -i :3000
+# Tuer le processus si besoin (remplacer 361475 par le bon PID)
+sudo kill -9 361475
+
+  
+# 3. Récupération du mot de passe admin Grafana
+user : admin 
+minikube kubectl -- get secret --namespace monitoring grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
+
+
+# 4. Déploiement et vérification de Node Exporter 
+
+# Node Exporter est déployé automatiquement avec kube-prometheus-stack
+# Vérifier la présence des pods Node Exporter
+minikube kubectl -- get pods -n monitoring
+
+# Vérifier les services
+minikube kubectl -- get services -n monitoring
+
+
+# 5. Mise à jour de la stack (si modification de la config) 
+helm upgrade prometheus prometheus-community/kube-prometheus-stack -f prometheus-values.yaml -n monitoring
+
+
+# 6. Configuration d’Alertmanager pour l’envoi d’emails
+
+# Exporter la configuration actuelle
+minikube kubectl -- get secret alertmanager-prometheus-kube-prometheus-alertmanager -n monitoring -o jsonpath="{.data.alertmanager\.yaml}" | base64 -d > alertmanager.yaml
+
+# Modifier alertmanager.yaml (ajouter la config email), sauvegarder puis réencoder
+base64 -w0 alertmanager.yaml > alertmanager.yaml.b64
+
+# Réimporter dans Kubernetes (patch le secret)
+minikube kubectl -- patch secret alertmanager-prometheus-kube-prometheus-alertmanager -n monitoring --type='json' -p='[{"op": "replace", "path": "/data/alertmanager.yaml", "value":"'"$(cat alertmanager.yaml.b64)"'"}]'
+
+# Redémarrer le pod Alertmanager
+minikube kubectl -- delete pod -n monitoring alertmanager-prometheus-kube-prometheus-alertmanager-0
+
+# Accéder à Alertmanager (port-forward)
+minikube kubectl -- port-forward -n monitoring alertmanager-prometheus-kube-prometheus-alertmanager-0 9093:9093
+
+  
+# 7. Déploiement de SLO Tracker
+# Installer docker-compose si besoin
+sudo apt-get update
+sudo apt-get install docker-compose
+
+# Cloner le projet
+git clone https://github.com/roshan8/slo-tracker.git
+cd slo-tracker
+
+# Vérifier si le port MySQL 3306 est utilisé
+sudo netstat -tlnp | grep :3306
+
+# Modifier le port dans docker-compose.yml si besoin (ex : 3307)
+# Puis lancer le déploiement
+docker-compose up -d
+
