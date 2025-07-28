@@ -1,3 +1,24 @@
+# 0. si besoin des commandes de déploiement des pods (control-plane et machines 1 et 2 )
+  # Se placer dans le dossier du control-plane
+  cd control-plane
+
+  # Builder l'image Docker (remplacer v3 par la version souhaitée)
+  docker build -t control-plane:v3 . 
+  
+  # Déployer le control-plane avec Kubernetes
+  minikube kubectl -- apply -f control-plane.yaml
+
+  #Idem pour les workers (machine-1 et machine-2)
+  cd worker
+  docker build -t worker:v3 .
+  minikube image load worker:v3
+  minikube kubectl -- apply -f machine-1.yaml
+  minikube kubectl -- apply -f machine-2.yaml
+
+  # Pour vérifier que tout fonctionne :
+  minikube kubectl -- get pods
+  minikube kubectl -- get services
+
 # 1. Installation de Helm, Prometheus et Grafana
 
 # Installer Helm (si ce n’est pas déjà fait)
@@ -74,6 +95,7 @@ minikube kubectl -- port-forward -n monitoring alertmanager-prometheus-kube-prom
 sudo apt-get update
 sudo apt-get install docker-compose
 
+# a- Via GitHub
 # Cloner le projet
 git clone https://github.com/roshan8/slo-tracker.git
 cd slo-tracker
@@ -84,4 +106,18 @@ sudo netstat -tlnp | grep :3306
 # Modifier le port dans docker-compose.yml si besoin (ex : 3307)
 # Puis lancer le déploiement
 docker-compose up -d
+
+Vérification  (accéder à l'interface SLO Tracker) : 
+http://localhost:3000 
+
+# b- Via le dossier déjà importé dans le repository
+# s'il est bien importé, il suffit de sauter l’étape du git clone.
+# se placer simplement dans le répertoire de slo tracker 
+
+cd slo-tracker
+#Puis poursuivre avec la vérification du port et le lancement du déploiement comme ci-dessus.
+
+
+
+
 
