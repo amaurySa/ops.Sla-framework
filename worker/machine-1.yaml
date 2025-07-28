@@ -21,7 +21,7 @@ spec:
         image: worker-node:v3    # Image Docker à utiliser pour ce worker
         ports:
         - containerPort: 8080    # Port pour le serveur TCP (réception des nombres)
-        - containerPort: 5000    # Port pour l’interface web Flask
+        - containerPort: 5001    # Port pour l’interface web Flask
 
 ---
 # Service interne pour exposer le port TCP du worker (utilisé par le control-plane)
@@ -47,6 +47,6 @@ spec:
   selector:
     app: machine-1
   ports:
-  - port: 5000                          # Port du service (HTTP Flask)
-    targetPort: 5000                    # Port du container Flask
+  - port: 5001                          # Port du service (HTTP Flask)
+    targetPort: 5001                    # Port du container Flask
     nodePort: 30001                     # Port du nœud Minikube (accès via http://<IP_minikube>:30001 )
