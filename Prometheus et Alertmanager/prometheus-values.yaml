@@ -4,7 +4,7 @@
 # ⚠️ Ce fichier s'applique via Helm (ex : helm upgrade ...) et NON via kubectl apply
 #     car il fait partie de la configuration chart/kube-prometheus-stack.
 # Différence avec le précédent :
-#   - Le précédent (PrometheusRule) ne concerne que les PODS et s'applique avec kubectl apply.
+#   - Le précédent pod-cpu-usage-levels.yaml(PrometheusRule) ne concerne que les PODS et s'applique avec kubectl apply.
 #   - Celui-ci configure à la fois le scraping des métriques des nœuds et les règles d'alerte sur les NODES,
 #     et doit être injecté dans la release Helm de Prometheus (souvent via values.yaml ou un fichier custom).
 # ===========================================================
