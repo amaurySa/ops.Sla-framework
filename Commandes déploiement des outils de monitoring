@@ -1,10 +1,10 @@
 # 0. si besoin des commandes de déploiement des pods (control-plane et machines 1 et 2 )
   # Se placer dans le dossier du control-plane
   cd control-plane
-
   # Builder l'image Docker (remplacer v3 par la version souhaitée)
   docker build -t control-plane:v3 . 
-  
+  #importer l'image 
+  minikube image load control-plane:v3
   # Déployer le control-plane avec Kubernetes
   minikube kubectl -- apply -f control-plane.yaml
 
@@ -34,7 +34,13 @@ helm repo update
 # Installer Prometheus et Grafana avec le chart kube-prometheus-stack
 helm install prometheus prometheus-community/kube-prometheus-stack --namespace monitoring --create-namespace
 
-# Vérifier que les pods sont bien déployés
+# remarque : Si on veut personnaliser la stack (ajouter des règles, modifier la config), directement à l'installation de Prometheus, on peut appliquer un fichier "prometheus-values.yaml" (déja fournis par exemple) avant l’installation, puis de l’utiliser lors du helm install :
+helm install prometheus prometheus-community/kube-prometheus-stack --namespace monitoring --create-namespace -f prometheus-values.yaml
+
+#ou alors appliquer seulement la commande précédente et par la suite faire un "helm upgrade" avec la configuration qu'on veut appliquer.
+
+# Vérifier que les pods sont bien déployés (on est sensés avoir 
+# des pods pour Prometheus, Grafana, Alertmanager, Node Exporter, Kube State Metrics, etc.) 
 minikube kubectl -- get pods -n monitoring
 
 
@@ -42,20 +48,19 @@ minikube kubectl -- get pods -n monitoring
 # Prometheus
 minikube kubectl -- port-forward svc/prometheus-kube-prometheus-prometheus 9090:9090 -n monitoring
 
-# Grafana (port 3000 ou autre si déjà utilisé)
+# Grafana dans un autre terminal (port 3000 ou autre si déjà utilisé)
 minikube kubectl -- port-forward svc/grafana 3000:80 -n monitoring
 # Si le port 3000 est occupé, choisir un autre port, ex :
 minikube kubectl -- port-forward svc/grafana 3001:80 -n monitoring
 
 # Vérifier quel processus utilise un port (ex : 3000)
 sudo lsof -i :3000
-# Tuer le processus si besoin (remplacer 361475 par le bon PID)
-sudo kill -9 361475
-
   
-# 3. Récupération du mot de passe admin Grafana
-user : admin 
+# 3. Récupération du mot de passe admin Grafana puis accéder à Grafana via http://localhost:3000 (ou 3001 selon le port utilisé pour le port forward précédent)
 minikube kubectl -- get secret --namespace monitoring grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
+
+user : admin 
+mot de passe : récupéré via la commande précédente
 
 
 # 4. Déploiement et vérification de Node Exporter 
@@ -69,7 +74,11 @@ minikube kubectl -- get services -n monitoring
 
 
 # 5. Mise à jour de la stack (si modification de la config) 
-helm upgrade prometheus prometheus-community/kube-prometheus-stack -f prometheus-values.yaml -n monitoring
+helm upgrade prometheus prometheus-community/kube-prometheus-stack -f prometheus-values.yaml -n monitoring 
+# remarque : cette commande ajoute la configuration des alertes concernant les NODES du cluster, et non pas les pods
+
+#pour ajouter les règles de surveillance des pods : 
+kubectl apply -f pod-cpu-usage-levels.yaml
 
 
 # 6. Configuration d’Alertmanager pour l’envoi d’emails
@@ -77,7 +86,7 @@ helm upgrade prometheus prometheus-community/kube-prometheus-stack -f prometheus
 # Exporter la configuration actuelle
 minikube kubectl -- get secret alertmanager-prometheus-kube-prometheus-alertmanager -n monitoring -o jsonpath="{.data.alertmanager\.yaml}" | base64 -d > alertmanager.yaml
 
-# Modifier alertmanager.yaml (ajouter la config email), sauvegarder puis réencoder
+# Modifier alertmanager.yaml (cmodifier en copiant et collant le contenu du fichier du fichier alertmanagerPersonnalisé.yaml ), sauvegarder puis réencoder
 base64 -w0 alertmanager.yaml > alertmanager.yaml.b64
 
 # Réimporter dans Kubernetes (patch le secret)
@@ -117,6 +126,66 @@ http://localhost:3000
 cd slo-tracker
 #Puis poursuivre avec la vérification du port et le lancement du déploiement comme ci-dessus.
 
+8. # Vérifier que les pods sont bien déployés (on est sensés avoir 
+# des pods pour Prometheus, Grafana, Alertmanager, Node Exporter, Kube State Metrics, etc.)
+minikube kubectl -- get pods -n monitoring
+
+# 8. Configuration de Grafana pour la visualisation des métriques
+
+# Pour Grafana, il n'y a pas de fichier de configuration spécifique à déployer.
+# Il suffit de créer des dashboards directement sur l'interface graphique.
+
+# Étapes pour configurer Grafana :
+
+# a) Ajouter Prometheus comme source de données dans Grafana :
+# - Accéder à l'interface Grafana (via port-forward sur http://localhost:3001)
+# - Aller dans : Home > Data Sources > Add new data source
+# - Choisir "Prometheus" comme type de source de données
+# - Dans le champ URL, saisir : http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090
+# - Laisser tous les autres paramètres par défaut
+# - Cliquer sur "Save & Test" (doit afficher "Data source is working")
+
+# Important : Ne pas utiliser http://localhost:9090 comme URL car Grafana et Prometheus tournent dans le cluster.
+# Il faut utiliser le nom DNS interne du service Kubernetes.
+
+# Pour retrouver l'URL interne d'un service Kubernetes :
+minikube kubectl -- get svc -n monitoring
+#alors on met l'URL http://<nom_du_service>.<namespace>.svc.cluster.local:<port>
+
+
+# b) Créer des dashboards sur l'interface graphique :
+# - Dans la barre latérale gauche, cliquer sur "+" (Add) > Dashboard > Add new panel
+# - Sélectionner Prometheus comme source de données
+# - Saisir les requêtes PromQL pour les métriques souhaitées
+# - Choisir le type de visualisation (Graph/Time series, Stat, Table, etc.)
+# - Donner un titre au panel et cliquer sur "Apply"
+# - Sauvegarder le dashboard avec un nom explicite
+
+# Exemples de requêtes PromQL utiles :
+
+# CPU Usage per Node :
+# 100 - (avg by(instance)(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
+
+# Memory Usage per Node :
+# (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100
+
+# CPU Usage per Pod :
+# sum by(pod, namespace) (rate(container_cpu_usage_seconds_total{cpu="total"}[5m]))
+
+# Memory Usage per Pod (as % of limit) :
+# sum by(pod, namespace) (container_memory_usage_bytes) / sum by(pod, namespace) (container_spec_memory_limit_bytes > 0)
+
+# Network Traffic per Pod (Incoming) :
+# sum by(pod, namespace) (rate(container_network_receive_bytes_total[5m]))
+
+# Network Traffic per Pod (Outgoing) :
+# sum by(pod, namespace) (rate(container_network_transmit_bytes_total[5m]))
+
+
+(Optionnel) Vérification de l’état général du cluster
+#Pour avoir une vue d’ensemble de tous les pods, tous namespaces confondus :
+
+minikube kubectl -- get pods -A
 
 
 
