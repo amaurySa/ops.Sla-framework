@@ -1,4 +1,5 @@
 #!/bin/bash
+#Boucle infinie qui génère un nombre aléatoire et l’envoie aux deux workers via TCP.
 
 echo "=== Control-plane démarre ==="
 
