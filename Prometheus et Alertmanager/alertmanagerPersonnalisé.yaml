@@ -2,7 +2,7 @@
 # J’ai renommé ce fichier en "Personnalisé" pour éviter d’écraser la config d’origine extraite après le déploiement d’Alertmanager (qui s’appelle aussi alertmanager.yaml par défaut).
 # Pour rappel, on extrait la config actuelle avec :
 # minikube kubectl -- get secret alertmanager-prometheus-kube-prometheus-alertmanager -n monitoring -o jsonpath="{.data.alertmanager\.yaml}" | base64 -d > alertmanager.yaml
-# Ensuite, il suffit de copier le contenu dans le vrai alertmanager.yaml, puis de réencoder avec :
+# Ensuite, il suffit de copier le contenu de ce fichier dans le vrai alertmanager.yaml, puis de réencoder avec :
 # base64 -w0 alertmanager.yaml > alertmanager.yaml.b64
 # (Toutes les commandes détaillées sont dans le fichier joint au projet)
 
