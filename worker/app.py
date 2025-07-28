@@ -15,4 +15,7 @@ def index():
 
 if __name__ == '__main__':
     print("=== Flask demarre ===")
-    app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)
+    app.run(host='0.0.0.0', port=5001, debug=True, use_reloader=False)
+
+ #éviter d'utiliser le port 5000 qui est souvent utilisé pour les applications Flask car il sera utilisé po pour la deuxieme application Flask qui reçoit les alertes Prometheus 
+#et lance les scripts nécéessaires selon l'alerte reçue
