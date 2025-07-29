@@ -1,23 +1,28 @@
+# ===========================================================
+# Fichier à déployer pour la configuration des alertes Prometheus sur les pods
+# Ce fichier définit les règles d'alerte CPU et mémoire pour chaque pod Kubernetes
+# ===========================================================
+
 apiVersion: monitoring.coreos.com/v1
-kind: PrometheusRule
+kind: PrometheusRule  # Définit des règles d'alertes pour Prometheus
 metadata:
   name: pod-cpu-usage-levels
-  namespace: monitoring
+  namespace: monitoring  # Namespace où déployer les règles
   labels:
-    release: prometheus
+    release: prometheus  # Label nécessaire pour que Prometheus découvre automatiquement ces règles
 spec:
   groups:
-  - name: pod.rules
+  - name: pod.rules  # Nom du groupe de règles
     rules:
-    # Alerte d'information : CPU normal (limitée à 1 notification/heure)
+    # Alerte d'information : CPU normal (< 50%)
     - alert: PodCpuNormal
       expr: |
         sum by(pod, namespace) (
-          rate(container_cpu_usage_seconds_total{cpu="total"}[5m])
-        ) < 0.5
-      for: 5m
+          rate(container_cpu_usage_seconds_total{cpu="total"}[5m])  # Calcule le taux d'utilisation CPU sur 5 minutes
+        ) < 0.5  # Déclenche si CPU < 50%
+      for: 5m  # Attendre 5 minutes avant de déclencher l'alerte
       labels:
-        severity: info
+        severity: info  # Niveau d'alerte : informatif
       annotations:
         summary: "CPU usage is normal on pod {{ $labels.pod }} (namespace {{ $labels.namespace }})"
         description: "CPU usage is below 50% for more than 5 minutes on pod {{ $labels.pod }}."
@@ -27,14 +32,14 @@ spec:
       expr: |
         sum by(pod, namespace) (
           rate(container_cpu_usage_seconds_total{cpu="total"}[5m])
-        ) > 0.8
+        ) > 0.8  # CPU > 80%
         and
         sum by(pod, namespace) (
           rate(container_cpu_usage_seconds_total{cpu="total"}[5m])
-        ) < 0.99
-      for: 5m
+        ) < 0.99  # ET CPU < 99% (pour éviter le chevauchement avec l'alerte critique)
+      for: 5m  # Attendre 5 minutes avant de déclencher l'alerte
       labels:
-        severity: warning
+        severity: warning  # Niveau d'alerte : avertissement
       annotations:
         summary: "High CPU usage on pod {{ $labels.pod }} (namespace {{ $labels.namespace }})"
         description: "CPU usage is between 80% and 99% for more than 5 minutes on pod {{ $labels.pod }}."
@@ -44,25 +49,25 @@ spec:
       expr: |
         sum by(pod, namespace) (
           rate(container_cpu_usage_seconds_total{cpu="total"}[5m])
-        ) >= 0.99
-      for: 2m
+        ) >= 0.99  # CPU ≥ 99%
+      for: 2m  # Attendre seulement 2 minutes (plus urgent que les autres alertes)
       labels:
-        severity: critical
+        severity: critical  # Niveau d'alerte : critique
       annotations:
         summary: "CRITICAL CPU usage on pod {{ $labels.pod }} (namespace {{ $labels.namespace }})"
         description: "CPU usage is at or above 99% for more than 2 minutes on pod {{ $labels.pod }}! Immediate action required."
 
-    # Alerte mémoire élevée
+    # Alerte mémoire élevée (> 80% de la limite)
     - alert: PodHighMemoryUsage
       expr: |
         sum by(pod, namespace) (
-          container_memory_usage_bytes
+          container_memory_usage_bytes  # Mémoire utilisée en bytes
         ) / sum by(pod, namespace) (
-          container_spec_memory_limit_bytes > 0
-        ) > 0.8
-      for: 5m
+          container_spec_memory_limit_bytes > 0  # Limite de mémoire configurée (si définie)
+        ) > 0.8  # Déclenche si utilisation > 80% de la limite
+      for: 5m  # Attendre 5 minutes avant de déclencher l'alerte
       labels:
-        severity: warning
+        severity: warning  # Niveau d'alerte : avertissement
       annotations:
         summary: "High memory usage on pod {{ $labels.pod }} (namespace {{ $labels.namespace }})"
         description: "Memory usage is above 80% of limit for more than 5 minutes on pod {{ $labels.pod }}."

@@ -2,27 +2,27 @@
 # J’ai renommé ce fichier en "Personnalisé" pour éviter d’écraser la config d’origine extraite après le déploiement d’Alertmanager (qui s’appelle aussi alertmanager.yaml par défaut).
 # Pour rappel, on extrait la config actuelle avec :
 # minikube kubectl -- get secret alertmanager-prometheus-kube-prometheus-alertmanager -n monitoring -o jsonpath="{.data.alertmanager\.yaml}" | base64 -d > alertmanager.yaml
-# Ensuite, il suffit de copier le contenu dans le vrai alertmanager.yaml, puis de réencoder avec :
+# Ensuite, il suffit de copier le contenu de ce fichier dans le vrai alertmanager.yaml, puis de réencoder avec :
 # base64 -w0 alertmanager.yaml > alertmanager.yaml.b64
 # (Toutes les commandes détaillées sont dans le fichier joint au projet)
 
 global:
-  resolve_timeout: 5m
-  smtp_smarthost: 'smtp.gmail.com:587'
-  smtp_from: 'monitoringk8s@gmail.com'
-  smtp_auth_username: 'monitoringk8s@gmail.com'
-  smtp_auth_password: 'batk bazm nfmg lutk'
-  smtp_require_tls: true
+  resolve_timeout: 5m  # Délai avant de considérer une alerte comme résolue
+  smtp_smarthost: 'smtp.gmail.com:587'  # Serveur SMTP utilisé pour l'envoi des mails
+  smtp_from: 'monitoringk8s@gmail.com'  # Adresse d'expédition des alertes email
+  smtp_auth_username: 'monitoringk8s@gmail.com'  # Identifiant SMTP (adresse email)
+  smtp_auth_password: 'batk bazm nfmg lutk'  # Mot de passe d’application Gmail (voir rapport pour la procédure de création)
+  smtp_require_tls: true  # Connexion sécurisée TLS obligatoire
 
 route:
-  group_by: ['alertname']
-  group_wait: 30s
-  group_interval: 5m
-  repeat_interval: 1h
-  receiver: 'null'  # Par défaut, rien n'est envoyé
+  group_by: ['alertname']  # Grouper les alertes par nom
+  group_wait: 30s          # Attendre 30s avant d’envoyer un groupe d’alertes
+  group_interval: 5m       # Attendre 5min entre deux groupes d’alertes similaires
+  repeat_interval: 1h      # Répéter l’alerte toutes les heures si elle persiste
+  receiver: 'null'         # Par défaut, aucune notification n’est envoyée
 
   routes:
-    # Ignorer les alertes Watchdog
+    # Ignore les alertes Watchdog (pour éviter le spam)
     - matchers:
         - alertname="Watchdog"
       receiver: "null"
@@ -61,11 +61,11 @@ route:
       receiver: "slo-tracker-webhook"
 
 receivers:
-  - name: "null"
+  - name: "null"  # Receiver vide, utilisé pour ignorer certaines alertes
 
   - name: "mail-and-slo-tracker"
     email_configs:
-      - to: 'monitoringk8s@gmail.com'
+      - to: 'monitoringk8s@gmail.com'  # Adresse de réception des alertes (modifiable)
         send_resolved: false
         html: |
           <h3>🚨 Alerte Kubernetes - {{ .CommonLabels.alertname }}</h3>
@@ -79,20 +79,21 @@ receivers:
           </ul>
           <p><i>Notification limitée selon la criticité de l'alerte.</i></p>
     webhook_configs:
-      - url: 'http://192.168.46.133:8080/api/v1/incident/1/webhook/prometheus'
-        send_resolved: true
+      - url: 'http://192.168.46.133:8080/api/v1/incident/1/webhook/prometheus'  # Webhook vers une app sur une autre machine du réseau
 
   - name: 'flask-webhook'
     webhook_configs:
-      - url: 'http://192.168.46.249:5000/alert'
-        send_resolved: true
+      - url: 'http://192.168.46.249:5000/alert'  # Webhook vers une app Flask sur une autre machine du réseau
+        # Si l'application Flask est déployée sur la même machine que l'Alertmanager, remplacer l'IP par localhost :
+        # url: 'http://localhost:5000/alert'
 
   - name: 'slo-tracker-webhook'
     webhook_configs:
-      - url: 'http://192.168.46.133:8080/api/v1/incident/1/webhook/prometheus'
-        send_resolved: true
+      - url: 'http://192.168.46.133:8080/api/v1/incident/1/webhook/prometheus'  # Webhook récupéré dans SLO tracker (section "Intégrations" > "Ajouter Prometheus" > copier le lien fourni)
+        # Même si le SLO tracker est sur la même machine, il faut utiliser le lien fourni par l'interface SLO tracker (ne pas remplacer par localhost sauf indication contraire dans la doc SLO tracker)
 
 inhibit_rules:
+  # Inhibe (masque) les alertes warning si une alerte critical existe pour le même pod/namespace
   - source_matchers:
       - severity="critical"
     target_matchers:
@@ -102,6 +103,7 @@ inhibit_rules:
       - pod
       - namespace
 
+  # Inhibe les alertes PodCpuNormal si une alerte critique CPU existe déjà pour le même pod/namespace
   - source_matchers:
       - alertname=~"PodHighCpuUsage|PodCpuFailure"
     target_matchers:
@@ -111,4 +113,4 @@ inhibit_rules:
       - namespace
 
 templates:
-  - /etc/alertmanager/config/*.tmpl
+  - /etc/alertmanager/config/*.tmpl  # Fichiers de template pour personnaliser les emails/messages

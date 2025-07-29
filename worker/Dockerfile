@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM ubuntu:16.04
 
 # Installer les outils de compilation et Python
 RUN apt-get update && apt-get install -y \

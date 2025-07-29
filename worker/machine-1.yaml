@@ -1,47 +1,52 @@
+# Déploiement du worker machine-1
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: machine-1
+  name: machine-1                # Nom du déploiement
 spec:
-  replicas: 1
+  replicas: 1                    # Un seul pod (instance) pour ce worker
   selector:
     matchLabels:
-      app: machine-1
+      app: machine-1             # Sélecteur pour faire correspondre le pod au déploiement
   template:
     metadata:
       labels:
-        app: machine-1
-        fogsla: ok
+        app: machine-1           # Label pour identifier ce pod
+        fogsla: ok              # Label additionnel (sert pour la supervision : permet de cibler ce pod pour la gestion dynamique des ressources par la suite)
     spec:
       nodeSelector:
-        kubernetes.io/hostname: minikube-m02
+        kubernetes.io/hostname: minikube-m02  # Force le pod à s’exécuter sur le nœud minikube-m02
       containers:
       - name: worker
-        image: worker-node:v3
+        image: worker-node:v3    # Image Docker à utiliser pour ce worker
         ports:
-        - containerPort: 8080
-        - containerPort: 5000
+        - containerPort: 8080    # Port pour le serveur TCP (réception des nombres)
+        - containerPort: 5001    # Port pour l’interface web Flask
+
 ---
+# Service interne pour exposer le port TCP du worker (utilisé par le control-plane)
 apiVersion: v1
 kind: Service
 metadata:
-  name: sla-project-machine-1-service
+  name: sla-project-machine-1-service   # Nom du service (utilisé par le control-plane pour envoyer les nombres)
 spec:
   selector:
-    app: machine-1
+    app: machine-1                      # Associe ce service au pod ayant ce label
   ports:
-  - port: 8080
-    targetPort: 8080
+  - port: 8080                          # Port exposé par le service
+    targetPort: 8080                    # Port du container à atteindre
+
 ---
+# Service NodePort pour accéder à l’interface web Flask depuis l’extérieur
 apiVersion: v1
 kind: Service
 metadata:
-  name: machine-1-nodeport
+  name: machine-1-nodeport              # Nom du service NodePort
 spec:
-  type: NodePort
+  type: NodePort                        # Permet d’accéder au service via un port du nœud Minikube
   selector:
     app: machine-1
   ports:
-  - port: 5000
-    targetPort: 5000
-    nodePort: 30001
+  - port: 5001                          # Port du service (HTTP Flask)
+    targetPort: 5001                    # Port du container Flask
+    nodePort: 30001                     # Port du nœud Minikube (accès via http://<IP_minikube>:30001 )

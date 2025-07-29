@@ -1,4 +1,15 @@
-prometheus: #ce fichier est a appliquer avec helm upgrade et non avec kubectl apply, il configure les node rules et non pas les pod rules
+# ===========================================================
+# Fichier de configuration Prometheus pour la supervision des NODES Kubernetes
+# À utiliser pour définir les règles d'alerte sur les ressources des nœuds (CPU, mémoire, disque, etc.)
+# ⚠️ Ce fichier s'applique via Helm (ex : helm upgrade ...) et NON via kubectl apply
+#     car il fait partie de la configuration chart/kube-prometheus-stack.
+# Différence avec le précédent :
+#   - Le précédent pod-cpu-usage-levels.yaml(PrometheusRule) ne concerne que les PODS et s'applique avec kubectl apply.
+#   - Celui-ci configure à la fois le scraping des métriques des nœuds et les règles d'alerte sur les NODES,
+#     et doit être injecté dans la release Helm de Prometheus (souvent via values.yaml ou un fichier custom).
+# ===========================================================
+
+prometheus: # Ce bloc configure Prometheus via Helm (chart kube-prometheus-stack)
   prometheusSpec:
     additionalScrapeConfigs:
       - job_name: 'prometheus'
@@ -25,6 +36,7 @@ additionalPrometheusRules:
     groups:
       - name: pod-cpu.rules
         rules:
+          # Règles d'alerte sur les pods (CPU)
           - alert: CpuNormal
             expr: |
               sum by(pod, namespace) (
@@ -73,6 +85,7 @@ additionalPrometheusRules:
               namespace: "{{ $labels.namespace }}"
               cpu: "{{ printf \"%.2f\" $value }}"
 
+          # Règle d'alerte sur l'utilisation du disque des NODES
           - alert: HighDiskUsage
             expr: 100 * (node_filesystem_size_bytes{fstype!~"tmpfs|overlay"} - node_filesystem_free_bytes{fstype!~"tmpfs|overlay"}) / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"} > 80
             for: 5m
@@ -82,6 +95,7 @@ additionalPrometheusRules:
               summary: "Disk usage is high on instance {{ $labels.instance }} (mountpoint {{ $labels.mountpoint }})"
               description: "Disk usage is above 80% for more than 5 minutes on {{ $labels.mountpoint }}."
 
+          # Règle d'alerte sur la mémoire des NODES
           - alert: HighMemoryUsage
             expr: 100 * (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 80
             for: 5m
@@ -89,4 +103,4 @@ additionalPrometheusRules:
               severity: critical
             annotations:
               summary: "Memory usage is high on instance {{ $labels.instance }}"
-              description: "Memory usage is above 80% for more than 5 minutes."
+              description: "Memory usage is above 80% for more than 5 minutes on the node."
