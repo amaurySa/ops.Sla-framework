@@ -11,7 +11,7 @@
   #Idem pour les workers (machine-1 et machine-2)
   cd worker
   docker build -t worker:v3 .
-  minikube image load worker:v3
+  minikube image load worker-node:v3
   minikube kubectl -- apply -f machine-1.yaml
   minikube kubectl -- apply -f machine-2.yaml
 
