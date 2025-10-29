@@ -82,7 +82,7 @@ public class AgreementEnforcement {
 	private IMetricsRetriever retriever;
 	private IConstraintEvaluator constraintEval;
 
-	@Value("ENF{" + POLL_INTERVAL + "}")
+	@Value("${" + POLL_INTERVAL + "}")
 	private String pollIntervalString;
 	private long pollInterval;
 	
